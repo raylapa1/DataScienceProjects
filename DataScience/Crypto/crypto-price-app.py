@@ -8,11 +8,11 @@ from bs4 import BeautifulSoup
 import requests
 import json
 import time
-#---------------------------------#
+# ---------------------------------#
 # New feature (make sure to upgrade your streamlit library)
 # pip install --upgrade streamlit
 
-#---------------------------------#
+# ---------------------------------#
 # Page layout
 ## Page expands to full width
 st.set_page_config(layout="wide")
@@ -29,7 +29,9 @@ This app retrieves cryptocurrency prices for the top 100 cryptocurrency from the
 """)
 #---------------------------------#
 # About
-expander_bar = st.beta_expander("About")
+# This is an expander bar to add additional information about the app/page
+expander_bar = st.beta_expander("About Crypto Price App")
+# Expander bar markdown are the information in the expander bar when clicked
 expander_bar.markdown("""
 * **Python libraries:** base64, pandas, streamlit, numpy, matplotlib, seaborn, BeautifulSoup, requests, json, time
 * **Data source:** [CoinMarketCap](http://coinmarketcap.com).
@@ -48,18 +50,32 @@ col2, col3 = st.beta_columns((2,1))
 col1.header('Input Options')
 
 ## Sidebar - Currency price unit
-currency_price_unit = col1.selectbox('Select currency for price', ('USD', 'BTC', 'ETH'))
+currency_per_unit = col1.selectbox('Select currency for price', ('GBP', 'USD', 'BTC', 'ETH', 'INR', 'EUR','AUD', 'CAD', 'SGD', 'CHF', 'MYR','JPY', 'CNY', 'NZD', 'THB', 'HUF', 'AED', 'HKD', 'MXN', 'ZAR'))
 
 #Web scraping of CoinMarketCap data
 @st.cache
 def load_data():
-    cmc = requests.get('https://coinmarketcap.com')
+    cmc = requests.get('https://coinmarketcap.com/coins/')
     soup = BeautifulSoup(cmc.content, 'html.parser')
 
     data = soup.find('script', id='__NEXT_DATA__', type='application/json')
     coins = {}
     coin_data = json.loads(data.contents[0])
     listings = coin_data['props']['initialState']['cryptocurrency']['listingLatest']['data']
+    # Check exchange price if not using USD, BTC or ETH and use https://www.xe.com/currencyconverter to get the current exchange rate for that currency
+    currency_converter = 1.0
+    currency_price_unit = currency_per_unit
+    if currency_per_unit not in ['USD', 'BTC', 'ETH']:
+        # Load exchange url with the selected currency at the end
+        url = "https://www.xe.com/currencyconverter/convert/?Amount=1&From=USD&To=" +currency_price_unit
+        #use pandas for web scraping the data for that currency
+        html = pd.read_html(url, header = 0)
+        #Use the second table in the dataframe indexed 1
+        df_currency = html[1]
+        #The data will be in the table with two colums, the first been USD and the second the selected currency. Since we dont know which currency has been
+        # selected we use iloc to select the first row and second column which will be the price of 1 USD in the selected currency which all then converted to float
+        currency_converter = float(df_currency.iloc[0][1][:-4])
+        currency_price_unit = 'USD'
     for i in listings:
       coins[str(i['id'])] = i['slug']
 
@@ -75,12 +91,12 @@ def load_data():
     for i in listings:
         coin_name.append(i['slug'])
         coin_symbol.append(i['symbol'])
-        price.append(i['quote'][currency_price_unit]['price'])
-        percent_change_1h.append(i['quote'][currency_price_unit]['percentChange1h'])
-        percent_change_24h.append(i['quote'][currency_price_unit]['percentChange24h'])
-        percent_change_7d.append(i['quote'][currency_price_unit]['percentChange7d'])
-        market_cap.append(i['quote'][currency_price_unit]['marketCap'])
-        volume_24h.append(i['quote'][currency_price_unit]['volume24h'])
+        price.append(i['quote'][currency_price_unit]['price'] * currency_converter)
+        percent_change_1h.append(i['quote'][currency_price_unit]['percentChange1h'] * currency_converter)
+        percent_change_24h.append(i['quote'][currency_price_unit]['percentChange24h'] * currency_converter)
+        percent_change_7d.append(i['quote'][currency_price_unit]['percentChange7d'] * currency_converter)
+        market_cap.append(i['quote'][currency_price_unit]['marketCap'] * currency_converter)
+        volume_24h.append(i['quote'][currency_price_unit]['volume24h'] * currency_converter)
 
     df = pd.DataFrame(columns=['coin_name', 'coin_symbol', 'market_cap', 'percent_change_1h', 'percent_change_24h', 'percent_change_7d', 'price', 'volume_24h'])
     df['coin_name'] = coin_name
