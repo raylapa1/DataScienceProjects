@@ -55,6 +55,9 @@ col1.header('Input Options')
 currency_per_unit = col1.selectbox('Select currency for price', ('GBP', 'USD', 'BTC', 'ETH', 'INR', 'EUR', 'AUD', 'CAD',
                                                                  'SGD', 'CHF', 'MYR', 'JPY', 'CNY', 'NZD', 'THB', 'HUF',
                                                                  'AED', 'HKD', 'MXN', 'ZAR'))
+# Select the number of coins to be displayed. N on this slider represent the number of pages of coins to be web scraped
+# on https://coinmarketcap.com/coins.com when each page contains up 10 100 coins
+number_of_coins = col1.slider('Display N hundreds of Coins', 1, 11, 11)
 
 # Web scraping of CoinMarketCap data
 
@@ -81,7 +84,7 @@ def load_data():
     df_all = pd.DataFrame(columns=['coin_name', 'coin_symbol', 'market_cap', 'percent_change_1h', 'percent_change_24h',
                                    'percent_change_7d', 'price', 'volume_24h'])
     # Use a for loop to iterate through every page with coins data to web scrap the data
-    for number in range(1, 4):
+    for number in range(1, number_of_coins + 1):
         url_page = 'https://coinmarketcap.com/coins/?page=' + str(number)
         cmc = requests.get(url_page)
         soup = BeautifulSoup(cmc.content, 'html.parser')
