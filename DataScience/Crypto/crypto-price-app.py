@@ -7,11 +7,14 @@ import matplotlib.pyplot as plt
 from bs4 import BeautifulSoup
 import requests
 import json
-
+import math
 # ---------------------------------#
 # New feature (make sure to upgrade your streamlit library)
 # pip install --upgrade streamlit
-
+# psycopg2.connect()
+# connect to database
+# con = psycopg2.connect(database="crytocoins", user="", password="1234", host="localhost", port=5432)
+# print("Not Database opened successfully")
 # ---------------------------------#
 # Page layout
 # # Page expands to full width
@@ -57,9 +60,14 @@ currency_per_unit = col1.selectbox('Select currency for price', ('GBP', 'USD', '
                                                                  'AED', 'HKD', 'MXN', 'ZAR'))
 # Select the number of coins to be displayed. N on this slider represent the number of pages of coins to be web scraped
 # on https://coinmarketcap.com/coins.com when each page contains up 10 100 coins
-number_of_coins = col1.slider('Display N hundreds of Coins', 1, 11, 11)
+# number_of_coins = col1.slider('Display N hundreds of Coins', 1, 11, 11)
 
 # Web scraping of CoinMarketCap data
+# Sidebar - Number of coins to display
+num_coin = col1.slider('Select the top N Number of Coins for Display', 1, 1100, 1100)
+# Check the number of pages of coins to be web scraped on https://coinmarketcap.com/coins.com when each page
+# contains up 10 100 coins
+number_of_pages = math.ceil(num_coin/100)
 
 
 @st.cache
@@ -84,7 +92,7 @@ def load_data():
     df_all = pd.DataFrame(columns=['coin_name', 'coin_symbol', 'market_cap', 'percent_change_1h', 'percent_change_24h',
                                    'percent_change_7d', 'price', 'volume_24h'])
     # Use a for loop to iterate through every page with coins data to web scrap the data
-    for number in range(1, number_of_coins + 1):
+    for number in range(1, number_of_pages + 1):
         url_page = 'https://coinmarketcap.com/coins/?page=' + str(number)
         cmc = requests.get(url_page)
         soup = BeautifulSoup(cmc.content, 'html.parser')
@@ -144,8 +152,7 @@ selected_coin = col1.multiselect('Cryptocurrency', sorted_coin, sorted_coin)
 # Filtering data
 df_selected_coin = df[(df['coin_symbol'].isin(selected_coin))]
 
-# Sidebar - Number of coins to display
-num_coin = col1.slider('Display Top N Coins', 1, 1000, 1000)
+
 df_coins = df_selected_coin[:num_coin]
 
 # Sidebar - Percent change timeframe
